@@ -17,6 +17,8 @@ MFLOG_STDOUT_EXPORT = "export MFLOG_STDOUT=/tmp/mflog_stdout"
 BASH_SAVE_LOGS_STUB = "echo save_logs"
 BASH_CAPTURE_LOGS_WRAP = lambda cmd: f"( {cmd} )"  # noqa: E731
 
+import sys
+
 metaflow_stubs = {
     "metaflow": MagicMock(),
     "metaflow.util": MagicMock(),
@@ -33,10 +35,23 @@ metaflow_stubs = {
     "metaflow.metaflow_config_funcs": MagicMock(config_values=lambda: []),
 }
 
-import sys
-
 for mod, stub in metaflow_stubs.items():
     sys.modules.setdefault(mod, stub)
+
+# Stub sandrun so backend.py can be imported without akash extras installed.
+_sandrun_stub = MagicMock()
+_sandrun_backend_stub = MagicMock()
+_sandrun_backends_stub = MagicMock()
+_sandrun_backends_akash_stub = MagicMock()
+_sandrun_backends_akash_stub.AkashBackend = MagicMock
+
+for _mod, _stub in [
+    ("sandrun", _sandrun_stub),
+    ("sandrun.backend", _sandrun_backend_stub),
+    ("sandrun.backends", _sandrun_backends_stub),
+    ("sandrun.backends.akash", _sandrun_backends_akash_stub),
+]:
+    sys.modules.setdefault(_mod, _stub)
 
 # Also stub metaflow.util.get_username
 sys.modules["metaflow"].util = MagicMock()

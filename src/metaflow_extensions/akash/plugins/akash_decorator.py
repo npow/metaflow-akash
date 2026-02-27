@@ -318,12 +318,11 @@ class AkashDecorator(StepDecorator):
                 with _os.fdopen(fd, "wb") as f:
                     f.write(package.blob)
             except Exception:
+                import contextlib
                 import os as _os
 
-                try:
+                with contextlib.suppress(OSError):
                     _os.unlink(local_path)
-                except OSError:
-                    pass
                 raise
             AkashDecorator.package_local_path = local_path
 
@@ -341,9 +340,7 @@ def _get_resolved_package_specs(
 ) -> tuple[list[Any], str]:
     """Return (PackageSpec list, target_arch) from a nflx CondaEnvironment."""
     try:
-        from metaflow_extensions.netflix_ext.plugins.conda.conda_environment import (
-            CondaEnvironment,
-        )
+        from metaflow_extensions.netflix_ext.plugins.conda.conda_environment import CondaEnvironment
     except ImportError:
         return [], "linux-64"
 

@@ -19,6 +19,7 @@ from __future__ import annotations
 import os
 import shlex
 import sys
+from typing import TYPE_CHECKING
 from typing import Any
 from typing import Callable
 
@@ -30,9 +31,10 @@ from metaflow.mflog import BASH_SAVE_LOGS
 from metaflow.mflog import bash_capture_logs
 from metaflow.mflog import export_mflog_env_vars
 
-from sandrun.backend import ExecResult
-
 from .backend import AkashBackend
+
+if TYPE_CHECKING:
+    from sandrun.backend import ExecResult
 
 LOGS_DIR = "$PWD/.logs"
 STDOUT_FILE = "mflog_stdout"

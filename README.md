@@ -1,5 +1,7 @@
 # metaflow-akash
 
+> **Work in progress** — not ready for production use.
+
 [![CI](https://github.com/npow/metaflow-akash/actions/workflows/ci.yml/badge.svg)](https://github.com/npow/metaflow-akash/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/metaflow-akash)](https://pypi.org/project/metaflow-akash/)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)

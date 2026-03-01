@@ -42,14 +42,11 @@ for mod, stub in metaflow_stubs.items():
 _sandrun_stub = MagicMock()
 _sandrun_backend_stub = MagicMock()
 _sandrun_backends_stub = MagicMock()
-_sandrun_backends_akash_stub = MagicMock()
-_sandrun_backends_akash_stub.AkashBackend = MagicMock
 
 for _mod, _stub in [
     ("sandrun", _sandrun_stub),
     ("sandrun.backend", _sandrun_backend_stub),
     ("sandrun.backends", _sandrun_backends_stub),
-    ("sandrun.backends.akash", _sandrun_backends_akash_stub),
 ]:
     sys.modules.setdefault(_mod, _stub)
 

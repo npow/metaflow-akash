@@ -16,6 +16,7 @@ Auth: Set AKASH_KEY_NAME in your environment (required).
 from __future__ import annotations
 
 import base64
+import contextlib
 import json
 import os
 import shlex
@@ -440,8 +441,10 @@ def _build_sdl(config: SandboxConfig, ssh_pubkey: str) -> str:
         "echo \"$AKASH_SSH_PUBKEY\" >> /root/.ssh/authorized_keys\n"
         "chmod 700 /root/.ssh && chmod 600 /root/.ssh/authorized_keys\n"
         "mkdir -p /var/run/sshd /run/sshd\n"
-        "sed -i 's/#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true\n"
-        "sed -i 's/#\\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config 2>/dev/null || true\n"
+        "sed -i 's/#\\?PermitRootLogin.*/PermitRootLogin yes/'"
+        " /etc/ssh/sshd_config 2>/dev/null || true\n"
+        "sed -i 's/#\\?PasswordAuthentication.*/PasswordAuthentication no/'"
+        " /etc/ssh/sshd_config 2>/dev/null || true\n"
         "ssh-keygen -A 2>/dev/null || true\n"
         "exec /usr/sbin/sshd -D\n"
     )
@@ -519,15 +522,14 @@ def _sftp_makedirs(sftp: Any, remote_path: str) -> None:
     try:
         sftp.stat(remote_path)
         return
-    except IOError:
+    except OSError:
         pass
     parent = str(Path(remote_path).parent)
     if parent != remote_path:
         _sftp_makedirs(sftp, parent)
-    try:
+    with contextlib.suppress(OSError):
+        # race: another call may have already created it
         sftp.mkdir(remote_path)
-    except IOError:
-        pass  # race: another call already created it
 
 
 # ---------------------------------------------------------------------------
@@ -568,8 +570,9 @@ class AkashBackend(SandboxBackend):
 
     def create(self, config: SandboxConfig) -> str:
         """Deploy on Akash and return a sandbox_id (= DSEQ string)."""
-        import paramiko
         import tempfile
+
+        import paramiko
 
         # 1. Generate an ephemeral SSH keypair.
         key = paramiko.RSAKey.generate(2048)
@@ -581,10 +584,8 @@ class AkashBackend(SandboxBackend):
             with os.fdopen(sdl_fd, "w") as f:
                 f.write(_build_sdl(config, pubkey))
         except Exception:
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(sdl_path)
-            except OSError:
-                pass
             raise
 
         dseq: str | None = None
@@ -597,15 +598,11 @@ class AkashBackend(SandboxBackend):
             _send_manifest(sdl_path, dseq, gseq, oseq, provider)
             ssh_host, ssh_port = _wait_for_service(dseq, gseq, oseq, provider)
         except Exception:
-            import contextlib
-
             if dseq:
                 with contextlib.suppress(Exception):
                     _close_deployment(dseq)
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(sdl_path)
-            except OSError:
-                pass
             raise
 
         sandbox_id = dseq
@@ -623,8 +620,6 @@ class AkashBackend(SandboxBackend):
         return sandbox_id
 
     def destroy(self, sandbox_id: str) -> None:
-        import contextlib
-
         state = self._deployments.pop(sandbox_id, None)
         if state is None:
             return
@@ -832,8 +827,6 @@ class AkashBackend(SandboxBackend):
                 on_stderr=on_stderr,
             )
         finally:
-            import contextlib
-
             with contextlib.suppress(Exception):
                 self._exec_str(
                     sandbox_id, f"rm -f {shlex.quote(remote_script)}", timeout=15

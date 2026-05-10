@@ -6,24 +6,20 @@ All tests mock out subprocess calls, paramiko, and the akash CLI.
 from __future__ import annotations
 
 import base64
-import json
-import os
-import unittest.mock as mock
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 import yaml
+from sandrun.backend import Resources
+from sandrun.backend import SandboxConfig
 
 # ---------------------------------------------------------------------------
 # Import helpers from the module under test
 # ---------------------------------------------------------------------------
-from metaflow_extensions.akash.plugins.backend import (
-    _build_sdl,
-    _extract_dseq,
-    _wait_for_service,
-)
-from sandrun.backend import Resources, SandboxConfig
-
+from metaflow_extensions.akash.plugins.backend import _build_sdl
+from metaflow_extensions.akash.plugins.backend import _extract_dseq
+from metaflow_extensions.akash.plugins.backend import _wait_for_service
 
 # ---------------------------------------------------------------------------
 # SDL generation
@@ -148,9 +144,11 @@ class TestBuildSdl:
                 raise ImportError("No module named 'yaml'")
             return real_import(name, *args, **kwargs)
 
-        with patch("builtins.__import__", side_effect=no_yaml):
-            with pytest.raises(ImportError, match="metaflow-akash"):
-                _build_sdl(self._config(), "ssh-rsa AAAA")
+        with (
+            patch("builtins.__import__", side_effect=no_yaml),
+            pytest.raises(ImportError, match="metaflow-akash"),
+        ):
+            _build_sdl(self._config(), "ssh-rsa AAAA")
 
 
 # ---------------------------------------------------------------------------
@@ -304,7 +302,7 @@ class TestWaitForService:
                 ]
             }
         }
-        host, port = _wait_for_service("1234", "1", "1", "provider", timeout=10)
+        _host, port = _wait_for_service("1234", "1", "1", "provider", timeout=10)
         assert port == 30022
 
     @patch("metaflow_extensions.akash.plugins.backend._get_lease_status")
@@ -330,7 +328,9 @@ class TestGetSsh:
 
     def _make_backend_with_state(self, mock_paramiko, host="host", port=22):
         """Create an AkashBackend with a pre-populated deployment state."""
-        from metaflow_extensions.akash.plugins.backend import AkashBackend, _DeploymentState, _LeaseId
+        from metaflow_extensions.akash.plugins.backend import AkashBackend
+        from metaflow_extensions.akash.plugins.backend import _DeploymentState
+        from metaflow_extensions.akash.plugins.backend import _LeaseId
 
         backend = object.__new__(AkashBackend)
         backend._deployments = {}
@@ -394,7 +394,7 @@ class TestGetSsh:
 
         with patch.dict("sys.modules", {"paramiko": mock_paramiko}):
             backend = self._make_backend_with_state(mock_paramiko)
-            with pytest.raises(RuntimeError, match="SSH connection.*failed after"):
+            with pytest.raises(RuntimeError, match=r"SSH connection.*failed after"):
                 backend._get_ssh("1234")
 
         assert mock_client.connect.call_count == 15
@@ -445,7 +445,9 @@ class TestExecStrSleep:
     """Verify that the read loop only sleeps when no data is available."""
 
     def _make_backend(self):
-        from metaflow_extensions.akash.plugins.backend import AkashBackend, _DeploymentState, _LeaseId
+        from metaflow_extensions.akash.plugins.backend import AkashBackend
+        from metaflow_extensions.akash.plugins.backend import _DeploymentState
+        from metaflow_extensions.akash.plugins.backend import _LeaseId
 
         backend = object.__new__(AkashBackend)
         backend._deployments = {}
@@ -463,7 +465,7 @@ class TestExecStrSleep:
     @patch("time.sleep")
     def test_no_sleep_when_data_flows(self, mock_sleep):
         """When stdout/stderr data is immediately available, sleep should be minimal."""
-        backend, state = self._make_backend()
+        backend, _state = self._make_backend()
 
         # Build a mock SSH client+transport+channel
         mock_channel = MagicMock()

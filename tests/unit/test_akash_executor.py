@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-import os
-import shlex
-import unittest.mock as mock
-from unittest.mock import MagicMock, patch
-
-import pytest
+import sys
+from unittest.mock import MagicMock
 
 # ---------------------------------------------------------------------------
 # Stub out metaflow imports so tests work standalone
@@ -16,8 +12,6 @@ import pytest
 MFLOG_STDOUT_EXPORT = "export MFLOG_STDOUT=/tmp/mflog_stdout"
 BASH_SAVE_LOGS_STUB = "echo save_logs"
 BASH_CAPTURE_LOGS_WRAP = lambda cmd: f"( {cmd} )"  # noqa: E731
-
-import sys
 
 metaflow_stubs = {
     "metaflow": MagicMock(),
